@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "devhub-shared"
+version = "0.1.0"
+description = "Shared utilities for all Universal Dev-Hub microservices"
+requires-python = ">=3.12"
+
+# =============================================================================
+# ARCHITECTURAL NOTE: Why a shared package?
+# =============================================================================
+# Without this package, every one of our 6 services would need to duplicate:
+#   - JWT encode/decode logic
+#   - Structured logger setup
+#   - SQLAlchemy base model class
+#   - Common Pydantic response models (e.g., HealthResponse, ErrorResponse)
+#
+# By making this an installable package, each service just does:
+#   pip install -e ../../shared   (editable install → live updates during dev)
+# And imports like:
+#   from devhub_shared.auth.jwt_handler import create_access_token
+#   from devhub_shared.logging.logger import get_logger
+# =============================================================================
+
+dependencies = [
+    "python-jose[cryptography]>=3.3.0",   # JWT encode/decode
+    "python-dotenv>=1.0.0",               # Load .env files
+    "python-json-logger>=2.0.7",          # Structured JSON logging
+    "pydantic>=2.0.0",                    # Data validation (also used by FastAPI)
+    "sqlalchemy[asyncio]>=2.0.0",         # Async ORM
+    "asyncpg>=0.29.0",                    # Async PostgreSQL driver
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["devhub_shared*"]

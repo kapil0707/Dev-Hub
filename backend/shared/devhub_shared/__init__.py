@@ -1,0 +1,3 @@
+# devhub_shared — Shared Python package for Universal Dev-Hub microservices
+# This __init__.py acts as the package root.
+# Services import from submodules: from devhub_shared.auth.jwt_handler import ...

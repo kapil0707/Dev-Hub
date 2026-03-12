@@ -1,0 +1,98 @@
+# =============================================================================
+# Universal Dev-Hub — Infrastructure Services
+# =============================================================================
+# PURPOSE: Spins up ONLY the infrastructure layer (databases, object storage).
+# Application services (FastAPI, Next.js) run natively via their own processes.
+#
+# USAGE:
+#   docker compose up -d          → Start all infra in background
+#   docker compose ps             → Check health status
+#   docker compose down           → Stop containers (data persists in volumes)
+#   docker compose down -v        → Stop AND delete all data volumes (CAUTION)
+# =============================================================================
+
+services:
+
+  # ===========================================================================
+  # PostgreSQL 16 — Primary relational database
+  # ===========================================================================
+  # WHY PostgreSQL? It is the industry standard for production relational data.
+  # We use a single instance locally; each microservice uses its own SCHEMA
+  # within the same database for isolation without running multiple PG servers.
+  # ===========================================================================
+  postgres:
+    image: postgres:16-alpine          # Alpine = smaller image, same functionality
+    container_name: devhub-postgres
+    restart: unless-stopped            # Auto-restart on crash, NOT on manual stop
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "5432:5432"                    # host:container
+    volumes:
+      - pg_data:/var/lib/postgresql/data  # Named volume → data survives container restart
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql  # Auto-runs on first boot
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    networks:
+      - devhub_network
+
+  # ===========================================================================
+  # MinIO — S3-compatible local object storage (for file uploads)
+  # ===========================================================================
+  # WHY MinIO? It exposes the exact same S3 API that AWS S3 uses. This means
+  # code written for MinIO works on real AWS S3 with zero changes (just swap URL).
+  # Port 9000 = API endpoint (used by Python SDK)
+  # Port 9001 = Browser console (visual admin UI)
+  # ===========================================================================
+  minio:
+    image: minio/minio:latest
+    container_name: devhub-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    ports:
+      - "9000:9000"                    # S3 API port
+      - "9001:9001"                    # MinIO web console
+    volumes:
+      - minio_data:/data               # Named volume for persistent object storage
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    networks:
+      - devhub_network
+
+# =============================================================================
+# Named Volumes
+# =============================================================================
+# Named volumes are managed by Docker and persist across container restarts.
+# They live at: C:\Users\<user>\AppData\Local\Docker\wsl\... on Windows.
+# =============================================================================
+volumes:
+  pg_data:
+    name: devhub_pg_data
+  minio_data:
+    name: devhub_minio_data
+
+# =============================================================================
+# Networks
+# =============================================================================
+# A dedicated bridge network so containers can address each other by service name.
+# e.g., services can connect to postgres via hostname "postgres" (not 127.0.0.1).
+# Application services running natively CAN'T use this network directly;
+# they connect via the published port (localhost:5432).
+# =============================================================================
+networks:
+  devhub_network:
+    name: devhub_network
+    driver: bridge

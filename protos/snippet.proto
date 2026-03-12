@@ -1,0 +1,78 @@
+// =============================================================================
+// snippet.proto — Snippet Engine gRPC Service Definition
+// =============================================================================
+// STATUS: PLACEHOLDER — Full implementation in Phase 3
+//
+// C++ DEVELOPER ANALOGY:
+//   This .proto file is like a C++ header file (.h)
+//   It defines the INTERFACE CONTRACT (function signatures + data types)
+//   without containing any implementation.
+//
+//   In C++:   class SnippetService { virtual Status GetSnippet(...) = 0; };
+//   In proto: service SnippetService { rpc GetSnippet(...) returns (...); }
+//
+//   The protoc compiler generates Python stub code from this file,
+//   just like a C++ compiler generates object files from headers.
+//
+// COMPILE COMMAND (run in Phase 3):
+//   python -m grpc_tools.protoc \
+//     -I./protos \
+//     --python_out=./backend/services/snippet_engine \
+//     --grpc_python_out=./backend/services/snippet_engine \
+//     ./protos/snippet.proto
+// =============================================================================
+
+syntax = "proto3";
+
+package snippet;
+
+// The gRPC service definition (the "interface")
+service SnippetService {
+  rpc CreateSnippet (SnippetRequest) returns (SnippetResponse);
+  rpc GetSnippet    (SnippetIdRequest) returns (SnippetResponse);
+  rpc GetSnippets   (SearchRequest) returns (SnippetListResponse);
+  rpc DeleteSnippet (SnippetIdRequest) returns (Empty);
+}
+
+// =============================================================================
+// Request Messages (what the client sends)
+// =============================================================================
+
+message SnippetRequest {
+  string title    = 1;  // Field numbers (= 1, = 2) are binary offsets, not values
+  string language = 2;  // This is why Protobuf is more compact than JSON
+  string code     = 3;  // (JSON sends the field NAME as a string in every record)
+  string user_id  = 4;
+  repeated string tags = 5;  // 'repeated' = array/list
+}
+
+message SnippetIdRequest {
+  string id = 1;
+}
+
+message SearchRequest {
+  string user_id  = 1;
+  string query    = 2;  // Search term (optional)
+  string language = 3;  // Filter by language (optional)
+}
+
+// =============================================================================
+// Response Messages (what the server returns)
+// =============================================================================
+
+message SnippetResponse {
+  string id         = 1;
+  string title      = 2;
+  string language   = 3;
+  string code       = 4;
+  string user_id    = 5;
+  repeated string tags = 6;
+  string created_at = 7;
+}
+
+message SnippetListResponse {
+  repeated SnippetResponse snippets = 1;
+  int32 total = 2;
+}
+
+message Empty {}

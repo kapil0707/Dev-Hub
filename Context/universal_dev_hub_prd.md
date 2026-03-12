@@ -1,66 +1,109 @@
 # Product Requirements Document (PRD): Universal Dev-Hub
+### Last Updated: 2026-03-12 | Status: APPROVED — Phase 0 Starting
+
+---
 
 ## 1. Executive Summary
-The **Universal Dev-Hub** is a locally hosted, 5-service microservice ecosystem designed to centralize developer productivity. It provides identity management, high-performance code snippet storage, local automation execution, binary file management, and system analytics, all driven by a Next.js frontend mimicking modern cloud platforms.
+The **Universal Dev-Hub** is a locally hosted, 6-service microservice ecosystem (1 BFF + 5 microservices) designed to centralize developer productivity. It provides identity management, high-performance code snippet storage, local automation execution, binary file management, and system analytics — all driven by a Next.js frontend mimicking modern cloud platforms. It is built as a **learn-by-doing project** for an intermediate C++ developer transitioning to web development.
+
+---
 
 ## 2. Goals & Non-Goals
-### 2.1 Goals
-- Build a 100% locally-run microservices architecture.
-- Implement Single Sign-On (SSO) using Google/GitHub via an Identity Service.
-- Utilize both REST/JSON and gRPC for inter-service communication.
-- Store structured data in PostgreSQL and unstructured binary data in MinIO.
-- Build a premium MUI-based Next.js dashboard.
 
-### 2.2 Non-Goals
-- Cloud deployment or container orchestration (Kubernetes) is out of scope for the MVP.
-- Multi-tenant enterprise RBAC (Role-Based Access Control) is out of scope (single developer focus).
+### 2.1 Goals (MVP)
+- Build a 100% locally-run microservices architecture orchestrated via Docker Compose.
+- Implement secure authentication using **username/password JWTs** (industry standard, no external OAuth dependency).
+- Utilize both REST/JSON and gRPC for inter-service communication.
+- Store structured data in PostgreSQL 16 and unstructured binary data in MinIO.
+- Manage database schema evolution with **Alembic** (migration-first approach).
+- Build a premium MUI 7-based Next.js 15 dashboard.
+- Implement a `backend/shared/` Python package to eliminate code duplication across services.
+
+### 2.2 Non-Goals (MVP)
+- GitHub/Google OAuth SSO — deferred to **V2**.
+- Cloud deployment or Kubernetes — out of scope.
+- Multi-tenant RBAC — single developer focus.
+- IndexedDB offline sync — deferred to **V2**.
+
+---
 
 ## 3. User Stories
-- **As a developer**, I want to log in using my GitHub account so I don't have to manage local passwords.
-- **As a developer**, I want to save a 500-line C++ snippet and retrieve it instantly via gRPC to paste into my IDE.
-- **As a developer**, I want to upload an architecture diagram (PNG) to local blob storage so I can link it in my notes.
-- **As a developer**, I want to click a "Run Build" button on my dashboard to execute a local shell script, so I can automate repetitive tasks.
-- **As a developer**, I want my dashboard to work offline by fetching cached snippets from my browser's IndexedDB.
+
+| # | Story | Service |
+|---|---|---|
+| US-01 | As a developer, I want to register and log in with username/password so I can access the hub securely. | Identity |
+| US-02 | As a developer, I want to save a 500-line C++ snippet and retrieve it instantly so I can paste it into my IDE. | Snippet Engine |
+| US-03 | As a developer, I want to upload an architecture diagram (PNG) to local blob storage so I can reference it. | Blob Service |
+| US-04 | As a developer, I want to click "Run Build" to execute a local shell script and see its exit code. | Automation Worker |
+| US-05 | As a developer, I want my dashboard to show daily usage charts so I can track productivity. | Analytics |
+
+---
 
 ## 4. Functional Requirements
 
-### 4.1 Frontend (Next.js Dashboard)
-- **Framework**: Next.js (App Router), React, Material UI v7.
-- **Pages**: Login, Overview Dashboard, Snippet Library, File Manager, Automation Hub.
-- **State Hydration**: Read from `IndexedDB` on load; sync with BFF in the background.
+### 4.1 Frontend (Next.js 15 Dashboard)
+- **Framework**: Next.js 15 (App Router), React 19, Material UI v7, TypeScript 5
+- **Pages**: Login, Overview Dashboard, Snippet Library, File Manager, Automation Hub
+- **Auth**: JWT stored in secure httpOnly cookies via BFF proxy
+- **V2 Feature**: IndexedDB offline cache (stale-while-revalidate)
 
-### 4.2 BFF (Backend for Frontend - FastAPI)
-- Acts as an API Gateway for the Next.js app.
-- Exposes only REST endpoints to the Frontend.
-- Internally orchestrates calls to the 5 microservices using appropriate protocols (REST or gRPC).
+### 4.2 BFF — API Gateway (FastAPI, Port 8000)
+- Single entry point for all frontend traffic
+- Validates JWT on every request (calls Identity Service)
+- Routes requests to downstream microservices using REST or gRPC
+- Serializes gRPC responses to JSON before returning to frontend
 
-### 4.3 The 5 Core Microservices
-1. **Identity Service (Port 8001)**
-   - Exposes REST API.
-   - Handles OAuth2 callbacks (GitHub/Google).
-   - Issues JWTs (JSON Web Tokens) for session management.
-   - Database: PostgreSQL (Users table).
+### 4.3 Microservices
 
-2. **Snippet Engine (Port 8002)**
-   - Exposes **gRPC** API (defined via Protocol Buffers).
-   - High-throughput CRUD operations for text/code payloads.
-   - Database: PostgreSQL (Snippets table).
+| # | Service | Port | Protocol | Database |
+|---|---|---|---|---|
+| 1 | Identity Service | 8001 | REST | PostgreSQL (users) |
+| 2 | Snippet Engine | 8002 | gRPC | PostgreSQL (snippets) |
+| 3 | Automation Worker | 8003 | REST | PostgreSQL (executions) |
+| 4 | Blob Storage Service | 8004 | REST | PostgreSQL (files) + MinIO |
+| 5 | Analytics Service | 8005 | REST | PostgreSQL (events agg.) |
 
-3. **Automation Worker (Port 8003)**
-   - Exposes REST API.
-   - Spawns and manages local OS processes (`subprocess` in Python).
-   - Monitors exit codes and runtime durations.
+#### Identity Service (8001)
+- `POST /auth/register` — Create user with hashed password (Argon2)
+- `POST /auth/login` — Validate credentials, return JWT (access + refresh tokens)
+- `GET /auth/me` — Return current user profile (from JWT)
+- **V2**: `GET /auth/github` — GitHub OAuth callback
 
-4. **Blob Storage Service (Port 8004)**
-   - Exposes REST API.
-   - Wraps the MinIO SDK. Handles file uploads and generates pre-signed download URLs.
-   - Database: PostgreSQL (File metadata table) + MinIO (Binary objects).
+#### Snippet Engine (8002 — gRPC)
+- `rpc CreateSnippet (SnippetRequest) returns (SnippetResponse)`
+- `rpc GetSnippets (SearchRequest) returns (SnippetListResponse)`
+- `rpc GetSnippet (SnippetIdRequest) returns (SnippetResponse)`
+- `rpc DeleteSnippet (SnippetIdRequest) returns (Empty)`
 
-5. **Analytics Service (Port 8005)**
-   - Exposes REST API.
-   - Ingests events (e.g., "Snippet created", "Script failed").
-   - Aggregates data for the frontend charts (e.g., usage per language, script success rates).
+#### Automation Worker (8003)
+- `POST /scripts/run` — Execute a shell script via Python `subprocess`
+- `GET /scripts/executions` — List past execution records
+- `GET /scripts/executions/{id}` — Get single execution detail
+
+#### Blob Storage Service (8004)
+- `POST /files/upload` — Upload a file (multipart); store binary in MinIO, metadata in PG
+- `GET /files` — List all files for the current user
+- `GET /files/{id}/download` — Generate pre-signed MinIO URL for download
+- `DELETE /files/{id}` — Remove file from MinIO and PG
+
+#### Analytics Service (8005)
+- `POST /events` — Ingest an event (called internally by BFF after actions)
+- `GET /analytics/summary` — Return dashboard summary metrics
+- `GET /analytics/executions/daily` — Return 30-day execution time series
+
+---
 
 ## 5. Security & Authentication
-- Frontend sends requests with an `Authorization: Bearer <JWT>` header to the BFF.
-- BFF validates the JWT with the Identity Service before routing requests to internal microservices.
+- Frontend sends `Authorization: Bearer <JWT>` to BFF
+- BFF validates JWT on **every request** before routing to internal services
+- Internal services trust the BFF and do not re-validate JWTs (internal network trust)
+- Passwords hashed with **Argon2** (not bcrypt — Argon2 is the OWASP-recommended standard)
+- JWT secret stored in `.env` file (gitignored)
+
+---
+
+## 6. Non-Functional Requirements
+- **Infra**: All infrastructure (Postgres + MinIO) spun up via `docker compose up -d`
+- **Migrations**: All DB changes managed via Alembic — no direct schema modifications
+- **Logging**: Structured JSON logs with `correlation_id` on every request across all services
+- **Code Reuse**: `backend/shared/` package shared across BFF and all 5 microservices

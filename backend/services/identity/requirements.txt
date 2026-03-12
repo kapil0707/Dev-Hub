@@ -1,0 +1,22 @@
+# =============================================================================
+# Identity Service Requirements
+# =============================================================================
+
+fastapi==0.115.5
+uvicorn[standard]==0.32.0
+
+# --- Database ----------------------------------------------------------------
+sqlalchemy[asyncio]==2.0.36
+asyncpg==0.30.0                  # Async PostgreSQL driver
+alembic==1.14.0                  # DB schema migration tool
+
+# --- Security (Phase 1) ------------------------------------------------------
+argon2-cffi==23.1.0              # OWASP-recommended password hashing (over bcrypt)
+python-jose[cryptography]==3.3.0 # JWT encode/decode (used via devhub_shared)
+
+# --- Validation & Config -----------------------------------------------------
+pydantic[email]==2.10.3          # Data validation + email format checking
+python-dotenv==1.0.1
+
+# --- Shared package (installed separately) -----------------------------------
+# pip install -e ../../../shared
