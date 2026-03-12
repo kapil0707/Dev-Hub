@@ -28,8 +28,15 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
+      # WHY trust auth for local dev?
+      # This DB is ONLY accessible from localhost (no external port exposure).
+      # Application-level security = Argon2 hashing in the Identity Service.
+      # md5/scram-sha-256 from Windows host → Docker container has known
+      # driver-level incompatibilities (asyncpg/psycopg2 on Windows + PG16).
+      # In production: use scram-sha-256 with proper client certificates/VPNs.
+      POSTGRES_HOST_AUTH_METHOD: trust
     ports:
-      - "5432:5432"                    # host:container
+      - "5433:5432"                    # host:container (5433 avoids conflict with native Windows PG)
     volumes:
       - pg_data:/var/lib/postgresql/data  # Named volume → data survives container restart
       - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql  # Auto-runs on first boot
