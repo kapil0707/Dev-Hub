@@ -1,43 +1,43 @@
 """
 =============================================================================
-BFF — FastAPI Dependencies
+BFF — FastAPI Dependencies (Cookie-Based JWT Auth)
 =============================================================================
-get_current_user: Validates JWT from Authorization header and extracts user_id.
+DESIGN: httpOnly cookies instead of Authorization headers.
 
-DESIGN CHANGE from original plan:
-    The original plan called the Identity Service /auth/me to validate the token.
-    This creates a circular proxy dependency and extra network hop.
+WHY COOKIES OVER HEADERS FOR BROWSERS?
+    Authorization: Bearer headers must be stored in JavaScript (localStorage
+    or sessionStorage). Any XSS vulnerability can steal the token.
 
-    Better approach: DECODE THE JWT LOCALLY in the BFF using the shared jwt_handler.
-    - The JWT was signed by the Identity Service using JWT_SECRET_KEY
-    - The BFF reads the same JWT_SECRET_KEY from .env
-    - Decoding locally is instant — no extra HTTP call needed
-    - The decode function raises exceptions for expired/invalid tokens
+    httpOnly cookies CANNOT be read by JavaScript — the browser sends them
+    automatically on every request. Even if an XSS attack executes JS,
+    it cannot extract the cookie value.
 
-    The Identity Service /auth/me is then called ONLY when real DB data is needed
-    (e.g., fetching the full user profile for the /me endpoint).
+    Trade-off: cookies require CSRF protection. We mitigate this with
+    SameSite=Lax (blocks cross-origin POSTs from other sites).
 =============================================================================
 """
-import os
+from fastapi import Depends, HTTPException, Request, status
 
-from fastapi import Depends, Header, HTTPException, status
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from devhub_shared.auth.jwt_handler import (
+    TokenExpiredError,
+    TokenInvalidError,
+    decode_token,
+)
 
-from devhub_shared.auth.jwt_handler import TokenExpiredError, TokenInvalidError, decode_token
-
-bearer_scheme = HTTPBearer(auto_error=True)
+COOKIE_NAME = "access_token"
 
 
-async def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
-) -> dict:
+async def get_current_user(request: Request) -> dict:
     """
-    Decode + validate the JWT locally.
-    Returns the token payload dict (contains user_id, email, exp, etc).
-
-    Raises HTTP 401 for missing/expired/invalid tokens.
+    Read JWT from httpOnly cookie, decode it, return the payload.
+    Raises HTTP 401 if cookie is missing, expired, or invalid.
     """
-    token = credentials.credentials
+    token = request.cookies.get(COOKIE_NAME)
+    if not token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated — no access_token cookie",
+        )
     try:
         payload = decode_token(token)
         return payload
@@ -45,11 +45,9 @@ async def get_current_user(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token has expired — please log in again",
-            headers={"WWW-Authenticate": "Bearer"},
         )
     except TokenInvalidError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or malformed token",
-            headers={"WWW-Authenticate": "Bearer"},
         )

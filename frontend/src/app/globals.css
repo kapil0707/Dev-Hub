@@ -1,0 +1,17 @@
+/* Global CSS — minimal, MUI handles component styles */
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Remove default link styles — MUI handles them */
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* Prevent layout shift from scrollbar */
+html {
+  overflow-y: scroll;
+}
