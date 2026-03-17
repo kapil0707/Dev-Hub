@@ -11,7 +11,19 @@ Ensure Docker Desktop is running before starting the services.
 
 ## Startup Instructions
 
-You will need multiple terminal windows (or tabs) to run all the services concurrently.
+### Quick Start (Recommended for Windows)
+We have provided an automated PowerShell script that spins up the entire infrastructure (Docker, all 5 Python Microservices, API Gateway, and Next.js Frontend) in separate terminal windows automatically.
+
+Open a PowerShell terminal as Administrator (or ensure execution policies allow scripts) in the root directory:
+```powershell
+.\start_all.ps1
+```
+
+If you prefer to start them manually, follow the steps below.
+
+---
+
+### Manual Startup
 
 ### 1. Start the Database (Docker)
 Open a terminal in the root `Dev-Hub` directory.
