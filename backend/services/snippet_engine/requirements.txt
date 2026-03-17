@@ -1,20 +1,21 @@
 # =============================================================================
-# Snippet Engine Requirements
+# Snippet Engine Requirements (Python 3.14 compatible)
 # =============================================================================
 
 # --- gRPC Framework ----------------------------------------------------------
-grpcio==1.68.1
-grpcio-tools==1.68.1             # Generates Python code from .proto files
-protobuf==5.29.2
+grpcio>=1.68.1
+grpcio-tools>=1.68.1              # Generates Python code from .proto files
+protobuf>=5.29.2
 
 # --- Database ----------------------------------------------------------------
-sqlalchemy[asyncio]==2.0.36
-asyncpg==0.30.0
-alembic==1.14.0
+sqlalchemy[asyncio]>=2.0.36
+asyncpg>=0.30.0
+alembic>=1.14.0
+psycopg2-binary>=2.9.10           # Sync driver for Alembic migrations
 
 # --- Validation & Config -----------------------------------------------------
-pydantic==2.10.3
-python-dotenv==1.0.1
+pydantic>=2.11.0
+python-dotenv>=1.0.1
 
 # --- Shared package (installed separately) -----------------------------------
-# pip install -e ../../../shared
+# pip install -e ../../shared

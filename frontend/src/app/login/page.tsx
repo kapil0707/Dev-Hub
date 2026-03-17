@@ -35,11 +35,14 @@ import {
   VisibilityOff,
   Email as EmailIcon,
   Lock as LockIcon,
+  Person as PersonIcon,
 } from "@mui/icons-material";
 import { useAuth } from "@/contexts/AuthContext";
 
 export default function LoginPage() {
-  const { login } = useAuth();
+  const { login, register } = useAuth();
+  const [isRegistering, setIsRegistering] = useState(false);
+  const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -51,13 +54,20 @@ export default function LoginPage() {
     setError("");
     setLoading(true);
     try {
-      await login(email, password);
+      if (isRegistering) {
+        await register(email, displayName, password);
+      } else {
+        await login(email, password);
+      }
     } catch (err: unknown) {
       // Axios wraps the error response
-      const axiosErr = err as { response?: { data?: { detail?: string } } };
-      setError(
-        axiosErr.response?.data?.detail || "Login failed — check your credentials"
-      );
+      const axiosErr = err as { response?: { data?: { detail?: string | any[] } } };
+      let errMsg = isRegistering ? "Registration failed" : "Login failed — check your credentials";
+      if (axiosErr.response?.data?.detail) {
+        const detail = axiosErr.response.data.detail;
+        errMsg = Array.isArray(detail) ? detail[0].msg : detail;
+      }
+      setError(errMsg);
     } finally {
       setLoading(false);
     }
@@ -106,7 +116,7 @@ export default function LoginPage() {
           </Stack>
 
           <Typography variant="body2" sx={{ mb: 4, color: "#94A3B8" }}>
-            Sign in to your developer dashboard
+            {isRegistering ? "Create a new developer account" : "Sign in to your developer dashboard"}
           </Typography>
 
           {/* Error Alert */}
@@ -118,13 +128,34 @@ export default function LoginPage() {
 
           {/* Login Form */}
           <Box component="form" onSubmit={handleSubmit} noValidate>
+            {isRegistering && (
+              <TextField
+                id="displayName"
+                label="Display Name"
+                fullWidth
+                required
+                autoFocus
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                sx={{ mb: 2.5 }}
+                slotProps={{
+                  input: {
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <PersonIcon sx={{ color: "#64748B", fontSize: 20 }} />
+                      </InputAdornment>
+                    ),
+                  },
+                }}
+              />
+            )}
             <TextField
               id="email"
               label="Email"
               type="email"
               fullWidth
               required
-              autoFocus
+              autoFocus={!isRegistering}
               autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -183,7 +214,7 @@ export default function LoginPage() {
               fullWidth
               variant="contained"
               size="large"
-              disabled={loading || !email || !password}
+              disabled={loading || !email || !password || (isRegistering && !displayName)}
               sx={{
                 py: 1.5,
                 fontSize: "1rem",
@@ -193,9 +224,25 @@ export default function LoginPage() {
               {loading ? (
                 <CircularProgress size={24} sx={{ color: "#fff" }} />
               ) : (
-                "Sign In"
+                isRegistering ? "Sign Up" : "Sign In"
               )}
             </Button>
+            
+            <Box sx={{ mt: 3, textAlign: "center" }}>
+              <Typography variant="body2" sx={{ color: "#64748B" }}>
+                {isRegistering ? "Already have an account?" : "Don't have an account?"}{" "}
+                <Button
+                  variant="text"
+                  onClick={() => {
+                    setIsRegistering(!isRegistering);
+                    setError("");
+                  }}
+                  sx={{ color: "#06B6D4", textTransform: "none", p: 0, minWidth: "auto", "&:hover": { bgcolor: "transparent", textDecoration: "underline" } }}
+                >
+                  {isRegistering ? "Sign In" : "Sign Up"}
+                </Button>
+              </Typography>
+            </Box>
           </Box>
         </CardContent>
       </Card>

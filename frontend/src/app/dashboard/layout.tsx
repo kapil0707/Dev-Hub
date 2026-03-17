@@ -54,7 +54,7 @@ const SIDEBAR_WIDTH = 240;
 const NAV_ITEMS = [
   { label: "Overview", href: "/dashboard", icon: <DashboardIcon /> },
   { label: "Snippets", href: "/dashboard/snippets", icon: <CodeIcon />, disabled: true },
-  { label: "Automation", href: "/dashboard/automation", icon: <AutomationIcon />, disabled: true },
+  { label: "Automation", href: "/dashboard/automation", icon: <AutomationIcon />, disabled: false },
   { label: "Files", href: "/dashboard/files", icon: <FilesIcon />, disabled: true },
 ];
 

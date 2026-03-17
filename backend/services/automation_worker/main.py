@@ -48,7 +48,5 @@ app = FastAPI(
 async def health_check():
     return {"status": "ok", "service": "automation_worker", "version": "0.1.0"}
 
-# TODO (Phase 4):
-# POST /scripts/run          → ScriptRunRequest → ExecutionResponse
-# GET  /scripts/executions   → List[ExecutionResponse]
-# GET  /scripts/executions/{id} → ExecutionResponse
+from routers.scripts import router as scripts_router
+app.include_router(scripts_router, prefix="/scripts")

@@ -1,78 +1,105 @@
 // =============================================================================
-// snippet.proto — Snippet Engine gRPC Service Definition
+// snippet.proto — gRPC Service Contract for Code Snippets
 // =============================================================================
-// STATUS: PLACEHOLDER — Full implementation in Phase 3
 //
-// C++ DEVELOPER ANALOGY:
-//   This .proto file is like a C++ header file (.h)
-//   It defines the INTERFACE CONTRACT (function signatures + data types)
-//   without containing any implementation.
+// WHAT IS THIS FILE?
+//   A Protocol Buffer (protobuf) definition that serves TWO purposes:
+//   1. Defines the MESSAGE SHAPES (like TypeScript interfaces or C++ structs)
+//   2. Defines the SERVICE (like a C++ abstract class with virtual methods)
 //
-//   In C++:   class SnippetService { virtual Status GetSnippet(...) = 0; };
-//   In proto: service SnippetService { rpc GetSnippet(...) returns (...); }
-//
-//   The protoc compiler generates Python stub code from this file,
-//   just like a C++ compiler generates object files from headers.
-//
-// COMPILE COMMAND (run in Phase 3):
+// COMPILATION:
 //   python -m grpc_tools.protoc \
-//     -I./protos \
-//     --python_out=./backend/services/snippet_engine \
-//     --grpc_python_out=./backend/services/snippet_engine \
-//     ./protos/snippet.proto
+//     --python_out=./generated --grpc_python_out=./generated \
+//     -I../../protos ../../protos/snippet.proto
+//
+//   This generates:
+//     snippet_pb2.py       — message classes (Snippet, CreateSnippetRequest, etc.)
+//     snippet_pb2_grpc.py  — server/client stubs (SnippetServiceServicer, SnippetServiceStub)
+//
+// C++ ANALOGY:
+//   .proto file     ≈  .h header file     (defines the interface)
+//   _pb2.py         ≈  compiled .o file    (message serialization)
+//   _pb2_grpc.py    ≈  virtual base class  (you implement the methods)
 // =============================================================================
 
 syntax = "proto3";
 
-package snippet;
-
-// The gRPC service definition (the "interface")
-service SnippetService {
-  rpc CreateSnippet (SnippetRequest) returns (SnippetResponse);
-  rpc GetSnippet    (SnippetIdRequest) returns (SnippetResponse);
-  rpc GetSnippets   (SearchRequest) returns (SnippetListResponse);
-  rpc DeleteSnippet (SnippetIdRequest) returns (Empty);
-}
+package devhub.snippets;
 
 // =============================================================================
-// Request Messages (what the client sends)
+// Messages — the data shapes sent over the wire
 // =============================================================================
 
-message SnippetRequest {
-  string title    = 1;  // Field numbers (= 1, = 2) are binary offsets, not values
-  string language = 2;  // This is why Protobuf is more compact than JSON
-  string code     = 3;  // (JSON sends the field NAME as a string in every record)
-  string user_id  = 4;
-  repeated string tags = 5;  // 'repeated' = array/list
+// A single code snippet (returned from server)
+message Snippet {
+  string id         = 1;    // UUID as string
+  string user_id    = 2;    // Owner's UUID
+  string title      = 3;
+  string language   = 4;    // e.g. "python", "javascript", "bash"
+  string code       = 5;    // The actual code content
+  repeated string tags = 6; // Array of tag strings
+  string created_at = 7;    // ISO 8601 timestamp
+  string updated_at = 8;    // ISO 8601 timestamp
 }
 
-message SnippetIdRequest {
-  string id = 1;
-}
-
-message SearchRequest {
-  string user_id  = 1;
-  string query    = 2;  // Search term (optional)
-  string language = 3;  // Filter by language (optional)
-}
-
-// =============================================================================
-// Response Messages (what the server returns)
-// =============================================================================
-
-message SnippetResponse {
-  string id         = 1;
+// Request to create a new snippet
+message CreateSnippetRequest {
+  string user_id    = 1;    // Set by BFF from JWT (not by the user)
   string title      = 2;
   string language   = 3;
   string code       = 4;
-  string user_id    = 5;
+  repeated string tags = 5;
+}
+
+// Request to update an existing snippet
+message UpdateSnippetRequest {
+  string id         = 1;    // Which snippet to update
+  string user_id    = 2;    // Must match the owner (authorization)
+  string title      = 3;
+  string language   = 4;
+  string code       = 5;
   repeated string tags = 6;
-  string created_at = 7;
 }
 
-message SnippetListResponse {
-  repeated SnippetResponse snippets = 1;
-  int32 total = 2;
+// Request a single snippet by ID
+message SnippetId {
+  string id      = 1;
+  string user_id = 2;  // For authorization: only owner can access
 }
 
+// Filter for listing snippets
+message ListSnippetsRequest {
+  string user_id          = 1;  // Required: whose snippets
+  string language_filter  = 2;  // Optional: filter by language
+  string tag_filter       = 3;  // Optional: filter by tag
+  string search_query     = 4;  // Optional: search in title
+}
+
+// Response containing multiple snippets
+message SnippetList {
+  repeated Snippet snippets = 1;
+  int32 total_count         = 2;
+}
+
+// Generic empty response (for delete)
 message Empty {}
+
+// =============================================================================
+// Service — the RPC methods (like a C++ class with virtual functions)
+// =============================================================================
+service SnippetService {
+  // Create a new code snippet
+  rpc CreateSnippet (CreateSnippetRequest) returns (Snippet);
+
+  // Get a single snippet by ID
+  rpc GetSnippet (SnippetId) returns (Snippet);
+
+  // List all snippets for a user (with optional filtering)
+  rpc ListSnippets (ListSnippetsRequest) returns (SnippetList);
+
+  // Update an existing snippet
+  rpc UpdateSnippet (UpdateSnippetRequest) returns (Snippet);
+
+  // Delete a snippet by ID
+  rpc DeleteSnippet (SnippetId) returns (Empty);
+}

@@ -34,6 +34,7 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
+  register: (email: string, display_name: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   fetchUser: () => Promise<void>;
 }
@@ -74,6 +75,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [fetchUser, router]);
 
+  // Register: POST new user → automatically log in afterwards
+  const register = useCallback(async (email: string, display_name: string, password: string) => {
+    const res = await api.post("/api/v1/auth/register", { email, display_name, password });
+    if (res.status === 200 || res.status === 201) {
+      await login(email, password);
+    }
+  }, [login]);
+
   // Logout: POST → BFF clears cookie → redirect to login
   const logout = useCallback(async () => {
     try {
@@ -85,7 +94,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [router]);
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, fetchUser }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout, fetchUser }}>
       {children}
     </AuthContext.Provider>
   );

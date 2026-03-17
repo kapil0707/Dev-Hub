@@ -54,3 +54,6 @@ async def health_check():
 
 # Mount routers
 app.include_router(auth_router, prefix="/api/v1/auth", tags=["Auth"])
+
+from routers.scripts import router as scripts_router
+app.include_router(scripts_router, prefix="/api/v1/scripts", tags=["Scripts"])
