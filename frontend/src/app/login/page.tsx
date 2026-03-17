@@ -229,9 +229,10 @@ export default function LoginPage() {
             </Button>
             
             <Box sx={{ mt: 3, textAlign: "center" }}>
-              <Typography variant="body2" sx={{ color: "#64748B" }}>
+              <Typography variant="body2" component="span" sx={{ color: "#64748B" }}>
                 {isRegistering ? "Already have an account?" : "Don't have an account?"}{" "}
-                <Button
+              </Typography>
+              <Button
                   variant="text"
                   onClick={() => {
                     setIsRegistering(!isRegistering);
@@ -241,7 +242,6 @@ export default function LoginPage() {
                 >
                   {isRegistering ? "Sign In" : "Sign Up"}
                 </Button>
-              </Typography>
             </Box>
           </Box>
         </CardContent>

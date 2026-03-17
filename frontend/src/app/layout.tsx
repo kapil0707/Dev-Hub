@@ -42,8 +42,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={inter.variable}>
-      <body style={{ margin: 0, backgroundColor: "#0B1120" }}>
+    <html lang="en" className={inter.variable} suppressHydrationWarning>
+      <body style={{ margin: 0, backgroundColor: "#0B1120" }} suppressHydrationWarning>
         <AppRouterCacheProvider options={{ key: "mui" }}>
           <ThemeProvider theme={theme}>
             <CssBaseline />
