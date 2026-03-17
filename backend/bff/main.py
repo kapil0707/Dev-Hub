@@ -57,3 +57,7 @@ app.include_router(auth_router, prefix="/api/v1/auth", tags=["Auth"])
 
 from routers.scripts import router as scripts_router
 app.include_router(scripts_router, prefix="/api/v1/scripts", tags=["Scripts"])
+
+from routers.files import router as files_router
+app.include_router(files_router, prefix="/api/v1/files", tags=["Files"])
+
