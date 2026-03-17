@@ -61,3 +61,6 @@ app.include_router(scripts_router, prefix="/api/v1/scripts", tags=["Scripts"])
 from routers.files import router as files_router
 app.include_router(files_router, prefix="/api/v1/files", tags=["Files"])
 
+from routers.analytics import router as analytics_router
+app.include_router(analytics_router, prefix="/api/v1/analytics", tags=["Analytics"])
+

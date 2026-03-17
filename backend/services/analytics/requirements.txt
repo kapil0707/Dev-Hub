@@ -1,18 +1,10 @@
-# =============================================================================
-# Analytics Service Requirements
-# =============================================================================
+fastapi>=0.115.0
+uvicorn[standard]>=0.30.6
+sqlalchemy>=2.0.35
+alembic>=1.13.3
+asyncpg>=0.29.0
+python-dotenv>=1.0.1
+pydantic>=2.9.2
 
-fastapi==0.115.5
-uvicorn[standard]==0.32.0
-
-# --- Database ----------------------------------------------------------------
-sqlalchemy[asyncio]==2.0.36
-asyncpg==0.30.0
-alembic==1.14.0
-
-# --- Validation & Config -----------------------------------------------------
-pydantic==2.10.3
-python-dotenv==1.0.1
-
-# --- Shared package (installed separately) -----------------------------------
-# pip install -e ../../../shared
+-e ../../shared
+psycopg2-binary>=2.9.11

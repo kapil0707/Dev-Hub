@@ -44,7 +44,23 @@ cd backend\services\automation_worker
 uvicorn main:app --port 8003 --reload
 ```
 
-### 5. Start the API Gateway / BFF (Port 8000)
+### 5. Start the Blob Storage Service (Port 8004)
+Open a new terminal.
+```powershell
+cd backend\services\blob_service
+.\.venv\Scripts\activate
+uvicorn main:app --port 8004 --reload
+```
+
+### 6. Start the Analytics Service (Port 8005)
+Open a new terminal.
+```powershell
+cd backend\services\analytics
+.\.venv\Scripts\activate
+uvicorn main:app --port 8005 --reload
+```
+
+### 7. Start the API Gateway / BFF (Port 8000)
 Open a new terminal.
 ```powershell
 cd backend\bff
@@ -52,7 +68,7 @@ cd backend\bff
 uvicorn main:app --port 8000 --reload
 ```
 
-### 6. Start the Next.js Frontend (Port 3000)
+### 8. Start the Next.js Frontend (Port 3000)
 Open a new terminal.
 ```powershell
 cd frontend
@@ -87,7 +103,7 @@ Create a `.env` file in the root `Dev-Hub` directory. Ask a team member for the 
 Run `docker compose up -d` in the root directory to start the database container.
 
 ### 4. Bootstrap Python Microservices
-For **each** of the backend directories (`backend/bff`, `backend/services/identity`, `backend/services/snippet_engine`, `backend/services/automation_worker`), run the following commands to create isolated virtual environments and install dependencies:
+For **each** of the backend directories (`backend/bff`, `backend/services/identity`, `backend/services/snippet_engine`, `backend/services/automation_worker`, `backend/services/blob_service`, `backend/services/analytics`), run the following commands to create isolated virtual environments and install dependencies:
 
 ```powershell
 # Run this inside each backend directory
@@ -141,6 +157,20 @@ alembic upgrade head
 **3. Automation Worker Migrations:**
 ```powershell
 cd ../automation_worker
+.\.venv\Scripts\activate
+alembic upgrade head
+```
+
+**4. Blob Storage Service Migrations:**
+```powershell
+cd ../blob_service
+.\.venv\Scripts\activate
+alembic upgrade head
+```
+
+**5. Analytics Service Migrations:**
+```powershell
+cd ../analytics
 .\.venv\Scripts\activate
 alembic upgrade head
 ```

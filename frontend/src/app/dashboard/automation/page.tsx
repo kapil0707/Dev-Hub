@@ -33,6 +33,7 @@ import {
   HourglassEmpty as PendingIcon,
 } from "@mui/icons-material";
 import { Execution, getExecutions, runScript } from "@/lib/api/automation";
+import { trackEvent } from "@/lib/api/analytics";
 
 export default function AutomationHubPage() {
   const [executions, setExecutions] = useState<Execution[]>([]);
@@ -44,6 +45,7 @@ export default function AutomationHubPage() {
 
   useEffect(() => {
     setIsMounted(true);
+    trackEvent("page_view", { page: "automation" });
   }, []);
 
   // Fetch executions
@@ -70,6 +72,7 @@ export default function AutomationHubPage() {
     setIsSubmitting(true);
     try {
       await runScript(scriptContent);
+      trackEvent("script_execution", { length: scriptContent.length });
       setOpenDialog(false);
       setScriptContent("");
       await loadExecutions(); // Refresh the list

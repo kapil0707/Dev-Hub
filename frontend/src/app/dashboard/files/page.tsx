@@ -26,6 +26,7 @@ import {
   InsertDriveFile as FileIcon
 } from "@mui/icons-material";
 import { fileApi, FileRecord } from "@/lib/api/files";
+import { trackEvent } from "@/lib/api/analytics";
 
 export default function FileManagerPage() {
   const [files, setFiles] = useState<FileRecord[]>([]);
@@ -35,6 +36,10 @@ export default function FileManagerPage() {
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    trackEvent("page_view", { page: "files" });
+  }, []);
 
   const fetchFiles = async () => {
     try {
@@ -59,6 +64,7 @@ export default function FileManagerPage() {
     try {
       setUploading(true);
       await fileApi.uploadFile(selectedFile);
+      trackEvent("file_upload", { size: selectedFile.size, type: selectedFile.type });
       setSuccessMsg("File uploaded successfully");
       await fetchFiles();
     } catch (err: any) {
